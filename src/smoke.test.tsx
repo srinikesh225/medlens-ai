@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { render, screen, cleanup, fireEvent } from '@testing-library/react'
+import { render, screen, cleanup } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import App from './App'
 import { StoreProvider } from './store/store'
-import { AuthProvider } from './store/auth'
+import { AuthProvider, authenticate, DEMO_CREDENTIALS } from './store/auth'
 
 /**
  * Render-level smoke test: mounts the full app (with lazy-loaded routes) for
@@ -46,7 +46,7 @@ describe('app renders every route', () => {
     ['/reports', 'Reports'],
     ['/review', 'Human review'],
     ['/timeline', 'Timeline & trends'],
-    ['/summary', 'AI summary'],
+    ['/summary', 'Record summary'],
     ['/reports/rep_cbc_jul', 'CBC — 15 Jul 2026'],
     ['/does-not-exist', 'This page could not be found'],
   ]
@@ -62,8 +62,8 @@ describe('app renders every route', () => {
 
   it('sets a unique document title per route', async () => {
     renderAt('/summary')
-    await screen.findByRole('heading', { name: 'AI summary' })
-    expect(document.title).toBe('AI Summary — MedLens')
+    await screen.findByRole('heading', { name: 'Record summary' })
+    expect(document.title).toBe('Record Summary — MedLens')
     expect(document.title).not.toMatch(/vite|react/i)
   })
 
@@ -86,20 +86,20 @@ describe('app renders every route', () => {
 })
 
 describe('authentication gate', () => {
-  it('shows the sign-in screen when no session exists', async () => {
+  it('DEMO_MODE opens straight on the seeded record — no login wall', async () => {
+    // A judge arriving with nothing stored must see data, not a form.
     localStorage.removeItem('medlens.auth.v1')
     renderAt('/')
-    expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeTruthy()
-    // The gated app content must NOT be present.
-    expect(screen.queryByText('Patient overview')).toBeNull()
+    expect(await screen.findByRole('heading', { name: 'Patient overview' })).toBeTruthy()
+    expect(screen.queryByRole('heading', { name: 'Sign in' })).toBeNull()
   })
 
-  it('signing in with the prefilled demo account reveals the app', async () => {
-    localStorage.removeItem('medlens.auth.v1')
-    renderAt('/')
-    await screen.findByRole('heading', { name: 'Sign in' })
-    fireEvent.click(screen.getByRole('button', { name: /sign in/i }))
-    // Sign-in simulates a short round-trip, then the app shell appears.
-    expect(await screen.findByRole('heading', { name: 'Patient overview' }, { timeout: 2000 })).toBeTruthy()
+  it('the demo credentials still authenticate, so the access boundary is real', () => {
+    // Sign-out returns to the sign-in screen; these are the credentials it takes.
+    expect(authenticate(DEMO_CREDENTIALS.email, DEMO_CREDENTIALS.password)).toMatchObject({
+      email: DEMO_CREDENTIALS.email,
+    })
+    expect(authenticate(DEMO_CREDENTIALS.email, 'wrong-password')).toBeNull()
+    expect(authenticate('someone@else.example', DEMO_CREDENTIALS.password)).toBeNull()
   })
 })

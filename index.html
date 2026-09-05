@@ -45,13 +45,10 @@
     <meta name="twitter:image" content="https://medlens.health/og-image.png" />
     <meta name="twitter:image:alt" content="MedLens — Clinical Information Intelligence" />
 
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
-      rel="stylesheet"
-    />
+    <!-- Fonts are self-hosted (Geist Sans + Geist Mono, bundled via
+         @fontsource in src/index.css). No third-party font request is made:
+         DEMO_MODE must reach zero external network calls, and patient-facing
+         software should not leak page loads to a font CDN. -->
 
     <!-- Site-wide structured data -->
     <script type="application/ld+json">

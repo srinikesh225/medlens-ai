@@ -1,38 +1,24 @@
-/** Lightweight, dependency-free visualizations (custom SVG — no chart lib). */
-import type { RangeStatus, TrendSeries } from '@/domain/types'
-
-const STATUS_COLOR: Record<RangeStatus, string> = {
-  LOW: '#1d4ed8',
-  WITHIN_RANGE: '#047857',
-  HIGH: '#b91c1c',
-  UNKNOWN: '#78716c',
-  UNEVALUABLE: '#78716c',
-}
-
 /**
- * Extraction confidence meter. Explicitly framed as extraction reliability,
- * NOT medical certainty (the label makes this unmissable).
+ * Lightweight, dependency-free visualizations (custom SVG — no chart lib).
+ *
+ * SVG `fill`/`stroke` cannot take a Tailwind class here, so these read the
+ * real values from the token module. That keeps a point's colour and its
+ * StatusPill label driven by the same source — a status can never be drawn
+ * in one colour and labelled as another.
  */
-export function ConfidenceMeter({ value, showLabel = true }: { value?: number; showLabel?: boolean }) {
-  if (value == null) return null
-  const pct = Math.round(value * 100)
-  const tone = pct >= 95 ? 'bg-emerald-500' : pct >= 85 ? 'bg-primary-500' : 'bg-amber-500'
-  return (
-    <div className="flex items-center gap-2" title="Extraction confidence — not a measure of medical certainty.">
-      <div className="h-1.5 w-16 rounded-full bg-ink-100 overflow-hidden">
-        <div className={`h-full ${tone}`} style={{ width: `${pct}%` }} />
-      </div>
-      {showLabel && <span className="text-xs tabular-nums text-ink-500">{pct}%</span>}
-    </div>
-  )
-}
+import type { TrendSeries } from '@/domain/types'
+import { STATUS_HEX, TOKENS } from '@/design/tokens'
+
+const STATUS_COLOR = STATUS_HEX
+
+export { ConfidenceMeter } from './ConfidenceMeter'
 
 /** A compact inline sparkline with an optional soft area fill. */
 export function Sparkline({
   values,
   width = 88,
   height = 26,
-  color = '#2a888f',
+  color = TOKENS.secondary,
   fill = false,
 }: {
   values: number[]
@@ -87,21 +73,21 @@ export function TrendChart({ series }: { series: TrendSeries }) {
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto" role="img" aria-label={`${series.testName} trend`}>
       {/* baseline */}
-      <line x1={padX} y1={padY + innerH} x2={W - padX} y2={padY + innerH} stroke="#e5e9ef" strokeWidth={1} />
-      <line x1={padX} y1={padY} x2={padX} y2={padY + innerH} stroke="#e5e9ef" strokeWidth={1} />
+      <line x1={padX} y1={padY + innerH} x2={W - padX} y2={padY + innerH} stroke={TOKENS.border} strokeWidth={1} />
+      <line x1={padX} y1={padY} x2={padX} y2={padY + innerH} stroke={TOKENS.border} strokeWidth={1} />
       {/* y labels */}
-      <text x={padX - 6} y={padY + 4} textAnchor="end" className="fill-ink-400" fontSize={9}>{max}</text>
-      <text x={padX - 6} y={padY + innerH} textAnchor="end" className="fill-ink-400" fontSize={9}>{min}</text>
+      <text x={padX - 6} y={padY + 4} textAnchor="end" className="fill-faint" fontSize={9}>{max}</text>
+      <text x={padX - 6} y={padY + innerH} textAnchor="end" className="fill-faint" fontSize={9}>{min}</text>
       {/* line */}
-      <polyline points={line} fill="none" stroke="#2a888f" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+      <polyline points={line} fill="none" stroke={TOKENS.secondary} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
       {/* points colored by source-range status */}
       {series.points.map((p, i) => (
         <g key={p.resultId}>
-          <circle cx={x(i)} cy={y(p.value)} r={3.5} fill={STATUS_COLOR[p.status]} stroke="#fff" strokeWidth={1.5} />
-          <text x={x(i)} y={y(p.value) - 8} textAnchor="middle" className="fill-ink-700" fontSize={9} fontWeight={600}>
+          <circle cx={x(i)} cy={y(p.value)} r={3.5} fill={STATUS_COLOR[p.status]} stroke={TOKENS.card} strokeWidth={1.5} />
+          <text x={x(i)} y={y(p.value) - 8} textAnchor="middle" className="fill-secondary" fontSize={9} fontWeight={600}>
             {p.value}
           </text>
-          <text x={x(i)} y={padY + innerH + 12} textAnchor="middle" className="fill-ink-400" fontSize={8}>
+          <text x={x(i)} y={padY + innerH + 12} textAnchor="middle" className="fill-faint" fontSize={8}>
             {p.date.slice(5)}
           </text>
         </g>

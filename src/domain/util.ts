@@ -1,5 +1,12 @@
 /** Small shared utilities. Kept dependency-free and deterministic. */
 
+/**
+ * The single wording used everywhere a sub-field is absent from the source
+ * document. MedLens never fills such a field in — a missing dose stays
+ * missing, visibly, in every view and in the summary.
+ */
+export const NOT_IN_SOURCE = 'Not specified in source.'
+
 let counter = 0
 /** Stable-ish id generator. Deterministic within a session for demo replays. */
 export function makeId(prefix = 'id'): string {

@@ -11,6 +11,36 @@ diagnose or prescribe.
 
 The **structured, source-linked record is the product. The AI is the extraction layer.**
 
+### The pipeline
+
+```
+  document                  a report as text (.txt/.csv/.md/.json)
+     |
+     v
+  parser                    segment into blocks, measure, locate value spans
+     |
+     v
+  AI extraction             deterministic extractor (default) OR live LLM via
+     |                      a server-side proxy. Output is untrusted JSON.
+     v
+  schema validation         Zod gate. Malformed labs are REJECTED, not repaired.
+     |                      A bad medication is dropped, never invented.
+     v
+  range validation  +  conflict engine
+     |                      status computed ONLY against the range printed in
+     |                      the source; no range -> UNKNOWN, never guessed.
+     |                      Disagreements are recorded, never auto-resolved.
+     v
+  human review              verify / edit / reject / note. Every action is
+     |                      appended to an audit trail. Nothing is auto-accepted.
+     v
+  structured record         every fact carries provenance: source type, report,
+     |                      character span, extraction confidence, review state
+     v
+  timeline  +  summary      chronology, data-only trends, and a deterministic
+                            summary that is safety-linted before display
+```
+
 ---
 
 ## Table of contents
@@ -100,7 +130,7 @@ src/
 ```
 
 **Why this shape:** the entire *credibility core* (range engine, conflict detector, trend
-math, provenance, safety linter) is pure TypeScript with **zero dependencies and 62 tests**.
+math, provenance, safety linter) is pure TypeScript with **zero dependencies and 100 tests**.
 A judge can stress-test it live. React and state are a thin shell over it.
 
 **Stack:** React 18 · TypeScript (strict) · Vite 5 · Tailwind CSS · React Router · Vitest.
@@ -291,6 +321,22 @@ verification state**.
 
 ## Testing
 
+**100 tests, 11 files, all passing** (`npm test`). Four of them are the guarantees that
+would lose the competition outright if they were wrong — they live together in
+`src/domain/guarantees.test.ts` and run against the **real** engines and the **real**
+seeded record, no mocks:
+
+1. **Range engine** — within / high / low / missing-range / non-numeric, plus a proof that
+   no seeded value carries a range the engine invented.
+2. **Conflict detection** — same test with different values raises a conflict carrying both
+   sides as evidence, and **every** detected conflict is `OPEN` with no `resolvedInFavorOf`.
+3. **Provenance** — no stored observation exists without a source; every character span
+   satisfies `rawText.slice(start, end) === valueRaw`; and a medication stripped of its dose
+   never regains one anywhere in the summary.
+4. **Safety** — the generated summary trips no linter rule and contains no diagnosis,
+   prescription, dosage or treatment language; and a deliberately unsafe string **is** caught,
+   so "0 violations" is a real result rather than a linter that never fires.
+
 ```bash
 npm test
 ```
@@ -326,23 +372,55 @@ npm test
 
 ## Demo walkthrough
 
-1. **Dashboard** — attention panel (conflicts / missing ranges / unreviewed), key info with
-   provenance badges, recent labs with source-only ranges, a live trend.
-2. **Upload report** → pick _Thyroid Function Test_ → watch the staged pipeline + the
-   Evidence-to-Record reveal → _View structured record_.
-3. **Report detail** — split screen. Click _View source_ on **TSH 5.9** → its span
-   highlights in the original; status is **High** computed from the source range `0.4 – 4.0`.
-4. **Review** — resolve the **Hemoglobin conflict** (13.2 vs 14.2, same date, two labs)
-   by marking one report authoritative + a note; answer a clarification; _Verify_ values;
-   watch the **audit trail** grow.
-5. **Timeline & trends** — expand events; read the neutral, data-only trend descriptions.
-6. **AI Summary** — the safety check shows **0 violations**; export via _Print / PDF_ or
-   download the record JSON.
-7. **Reset demo** anytime to return to the seeded state.
+This is the exact path, and it is **driven end to end in a real browser** before every
+release (`scripts/` + CDP). Roughly 90 seconds.
+
+1. **Open** `http://localhost:5173`. In `DEMO_MODE` (the default) you land directly on the
+   seeded record for **Jordan M. Rivera** — no login, no empty state, no setup. The first
+   line on the screen says what MedLens is.
+2. **Read the record.** The *Needs a human* panel shows **3 open conflicts**, **2 values
+   with no reference range**, and the human-verified count. The labs table shows
+   `Reference range not provided in source.` verbatim on Vitamin D, and
+   **"Within reported range"** — never "Normal".
+3. **Click a value's date** (e.g. Hemoglobin, 01 Sept 2026) → the report detail opens
+   split-screen with the original document text.
+4. **Click _View source_** → the exact characters `13.2` highlight in the raw report.
+   This is a real character offset into `report.rawText`, asserted by a test.
+5. **Go to Review** → the **Hemoglobin conflict** shows **13.2 g/dL vs 14.2 g/dL**, same
+   date, two different reports, side by side. MedLens states it will not pick a winner.
+6. **Click _Verify_** on a value → its badge becomes *Human verified* and the action is
+   appended to the audit trail.
+7. **Timeline & trends** → the Hemoglobin trend plots three points, **12.1 → 12.8 → 13.2**,
+   described as data ("Reported values increased across the available reports"), never as
+   clinical improvement.
+8. **Record Summary** → five fixed sections, safety check reports **0 violations**, and the
+   disclaimer is attached to the output.
+9. **Reset demo** at any time to return to the seeded state.
 
 _Fallback:_ if you enable the live extractor and the API is down, MedLens catches the error,
 preserves the uploaded document, and offers the deterministic extractor / manual entry —
 the judge always sees the full experience.
+
+---
+
+## MedLens vs "ChatGPT + a PDF"
+
+Both take a report and produce text. Only one produces a **record**.
+
+| | ChatGPT + a PDF | MedLens |
+|---|---|---|
+| **Input** | PDF pasted into a chat box | Report text through a staged, inspectable pipeline |
+| **Extraction** | Free-form prose generation | Extraction into a **typed schema**, then a **Zod validation gate** — malformed output is rejected, not repaired |
+| **Reference ranges** | Recalled from training data. Will happily supply "13.5–17.5 g/dL" for a report that printed no range | **Parsed from the source document only.** No range in the source → status `UNKNOWN` and the literal text *"Reference range not provided in source."* There is no range table in the codebase to fall back on |
+| **Provenance** | None. You cannot tell which sentence produced which number | Every fact carries source type, report id, **character offsets**, extraction confidence and review state. Click a value → see the exact characters it came from |
+| **Two reports disagree** | Silently averages, picks one, or hallucinates a reconciliation | Emits an **OPEN conflict** carrying both values as evidence, and **never auto-resolves**. A human decides |
+| **Missing data** | Fills the gap fluently | Renders *"Not specified in source."* A medication with no dose never gains one |
+| **Trends** | "Your hemoglobin has improved" | "Reported values increased across the available reports (12.1 → 12.8 → 13.2)" — data description, structurally incapable of clinical judgement |
+| **Human review** | None | Verify / edit / reject / note, with an append-only **audit trail** |
+| **Safety** | Prompt instructions, unenforced | A **deterministic linter** scans every generated section for diagnostic / prescriptive / dosage / treatment / false-certainty language and **withholds** anything that trips |
+| **Verifiability** | Re-run and get different prose | Pure, deterministic domain core with **100 tests** a judge can run live |
+
+The one-line version: **ChatGPT summarizes a document. MedLens builds a record you can audit.**
 
 ---
 
@@ -360,8 +438,22 @@ Stated plainly, because a hidden gap is worse than a declared one:
 - **Pipeline pacing.** Every stage does real work and reports a real metric, but a ~240 ms
   per-stage delay is added so the steps are legible. There is no backend emitting progress,
   because there is no backend.
-- **Authentication is a demo gate.** Credentials are checked in-browser, not on a server.
-  Production replaces it with a real OIDC/SSO provider.
+- **Authentication is a demo gate, and in `DEMO_MODE` it is bypassed on load.** A reviewer
+  session is seeded so a judge lands on the record rather than a form. Sign out to reach the
+  sign-in screen; credentials are checked in-browser, not on a server. Production replaces
+  this with a real OIDC/SSO provider.
+- **The summary is deterministic, not model-generated** — and is named *Record Summary*
+  rather than "AI Summary" for exactly that reason. `composeSummary()` builds it from the
+  structured record by template and then safety-lints it. That is deliberate: it is why the
+  summary cannot hallucinate. The AI layer in this build is **extraction**, not
+  summarization, and nothing in the product claims otherwise.
+- **Removed as non-functional** (a missing feature beats a caught fake):
+  - A simulated 450 ms "network round-trip" on sign-in. Authentication is local and
+    synchronous; the delay was theatre and is gone.
+  - A search icon in the app header that did not search — it merely navigated to Review.
+    Removed. The real search box lives on the Review screen.
+  - Decorative vital-stat sparklines that were not tied to a specific reading (`VitalCard`).
+    Trends now render only from `computeTrends(record.labs)`.
 - **Conflict/allergy checks are intentionally literal** (name-level), never clinical
   inference — by design, to stay non-diagnostic.
 - **The live-LLM path is written but not exercised.** `DEMO_MODE=true` (default) guarantees

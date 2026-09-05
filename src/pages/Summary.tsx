@@ -42,9 +42,11 @@ export default function Summary() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <Breadcrumbs items={PAGE_META.summary.breadcrumbs} />
-          <h1 className="text-xl font-semibold text-ink-900">AI summary</h1>
+          <h1 className="text-xl font-semibold text-ink-900">Record summary</h1>
           <p className="text-sm text-ink-500 mt-1">
-            Built from the structured record — it can only state what the data supports.
+            Composed deterministically from the structured record and safety-linted before
+            display. No language model writes this text, so it can only state what the data
+            supports.
           </p>
         </div>
         <div className="flex gap-2 print:hidden">

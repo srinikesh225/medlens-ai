@@ -35,16 +35,15 @@ export default function Login() {
       return
     }
     setBusy(true)
-    // Simulate a network round-trip so the flow feels real (all local).
-    setTimeout(() => {
-      const user = authenticate(email, password)
-      if (user) {
-        signIn(user)
-      } else {
-        setError('Those credentials don’t match the demo account shown below.')
-        setBusy(false)
-      }
-    }, 450)
+    // Credentials are checked locally and synchronously. No network call is
+    // made, so no delay is simulated.
+    const user = authenticate(email, password)
+    if (user) {
+      signIn(user)
+    } else {
+      setError('Those credentials don’t match the demo account shown below.')
+      setBusy(false)
+    }
   }
 
   return (

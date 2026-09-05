@@ -29,7 +29,8 @@
 - Reports (/reports): ingested documents and the split-screen document viewer.
 - Review (/review): human-in-the-loop verification, conflict resolution, audit trail.
 - Timeline & Trends (/timeline): chronology and data-only trend analysis.
-- AI Summary (/summary): safety-gated, exportable information summary.
+- Record Summary (/summary): safety-gated, exportable information summary, composed
+  deterministically from the structured record (not model-generated).
 
 ## Safety
 

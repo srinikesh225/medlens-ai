@@ -1,6 +1,64 @@
+/* Geist Sans (variable, normal only — the browser downloads just the latin
+   subset thanks to the unicode-range declarations) and Geist Mono 400 for the
+   source-document viewer. Both are self-hosted: no external request, so the
+   app still renders correctly offline. A single variable file covers the
+   400/500/600/700 weights the design system uses in fewer bytes than four
+   static weight files. */
+@import '@fontsource-variable/geist';
+@import '@fontsource/geist-mono/400.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ========================================================================== */
+/* DESIGN TOKENS                                                              */
+/* Mirrors src/design/tokens.ts. Stored as space-separated RGB channels so    */
+/* Tailwind's `/opacity` modifiers work (`bg-canvas/80`).                     */
+/* src/design/tokens.test.ts asserts this block stays in sync with tokens.ts. */
+/* ========================================================================== */
+:root {
+  /* surface */
+  --canvas: 246 247 249;
+  --card: 255 255 255;
+  --sunken: 240 242 245;
+  --border: 230 233 237;
+
+  /* text */
+  --ink: 18 22 28;
+  --secondary: 91 100 114;
+  --muted: 100 109 123;
+  --faint: 138 147 161;
+  --inverse: 255 255 255;
+
+  /* accent */
+  --accent: 27 95 224;
+  --accent-soft: 234 240 254;
+
+  /* status */
+  --status-low: 180 83 10;
+  --status-low-bg: 253 242 231;
+  --status-normal: 20 114 75;
+  --status-normal-bg: 233 245 239;
+  --status-high: 180 35 24;
+  --status-high-bg: 254 236 234;
+  --status-unknown: 91 100 114;
+  --status-unknown-bg: 240 242 245;
+  --status-conflict: 139 74 156;
+  --status-conflict-bg: 246 237 248;
+
+  /* provenance */
+  --prov-user: 20 114 75;
+  --prov-user-bg: 233 245 239;
+  --prov-doc: 27 95 224;
+  --prov-doc-bg: 234 240 254;
+  --prov-ai: 139 74 156;
+  --prov-ai-bg: 246 237 248;
+  --prov-verified: 15 118 110;
+  --prov-verified-bg: 230 244 243;
+  --prov-conflict: 180 35 24;
+  --prov-conflict-bg: 254 236 234;
+}
 
 @layer base {
   :root {
@@ -11,54 +69,132 @@
     text-rendering: optimizeLegibility;
   }
   body {
-    @apply bg-canvas text-ink-900 font-sans antialiased;
+    @apply bg-canvas text-ink font-sans antialiased;
+    font-size: 15px;
+    line-height: 24px;
   }
-  /* Visible, accessible focus ring for keyboard users */
+  /* Every interactive element gets the same visible focus treatment. */
   :focus-visible {
-    @apply outline-none ring-2 ring-primary-500 ring-offset-1 ring-offset-white rounded;
+    @apply outline-none ring-2 ring-accent ring-offset-2 ring-offset-canvas rounded-sm;
   }
   ::selection {
-    @apply bg-primary-200 text-primary-900;
+    @apply bg-accent-soft text-ink;
   }
 }
 
+/* ========================================================================== */
+/* TYPE RAMP                                                                  */
+/* Use these names, never raw sizes. Colour/weight utilities still override.  */
+/* ========================================================================== */
+@layer components {
+  .text-display {
+    font-size: 40px;
+    line-height: 44px;
+    font-weight: 600;
+    letter-spacing: -0.03em;
+  }
+  .text-h1 {
+    font-size: 28px;
+    line-height: 34px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+  .text-h2 {
+    font-size: 20px;
+    line-height: 28px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  /* Numeric displays are tabular so lab values align down a column. */
+  .text-metric {
+    font-size: 32px;
+    line-height: 36px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
+    letter-spacing: -0.01em;
+  }
+  .text-unit {
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 500;
+    @apply text-muted;
+  }
+  .text-body {
+    font-size: 15px;
+    line-height: 24px;
+    font-weight: 400;
+  }
+  .text-label {
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    @apply text-muted;
+  }
+  .text-mono {
+    @apply font-mono;
+    font-size: 13px;
+    line-height: 20px;
+  }
+  /* Any inline number that should align in a column. */
+  .num {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
+  }
+}
+
+/* ========================================================================== */
+/* LEGACY component classes.                                                  */
+/* Retained so the screens not yet migrated to the primitives keep building;   */
+/* remapped onto the new tokens so they inherit the palette. New code should   */
+/* use the primitives in src/components/ui instead.                            */
+/* ========================================================================== */
 @layer components {
   .card {
-    @apply bg-white rounded-[20px] border border-ink-200/70 shadow-card;
+    @apply bg-card rounded-card border border-border shadow-card;
   }
   .card-lg {
-    @apply bg-white rounded-[24px] border border-ink-200/60 shadow-panel;
+    @apply bg-card rounded-card border border-border shadow-raised;
   }
   .icon-chip {
-    @apply grid place-items-center h-9 w-9 rounded-xl shrink-0;
+    @apply grid place-items-center h-9 w-9 rounded-md shrink-0;
   }
   .icon-btn {
-    @apply grid place-items-center h-10 w-10 rounded-full bg-white border border-ink-200/70 text-ink-500 shadow-card hover:text-ink-800 hover:shadow-panel transition-all;
-  }
-  .btn-accent {
-    @apply btn bg-accent-400 text-ink-900 hover:bg-accent-500 active:bg-accent-600 shadow-card font-semibold;
+    @apply grid place-items-center h-10 w-10 rounded-pill bg-card border border-border text-muted shadow-card hover:text-ink hover:shadow-raised transition-all;
   }
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-3.5 py-2 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
   }
   .btn-primary {
-    @apply btn bg-primary-700 text-white hover:bg-primary-800 active:bg-primary-900;
+    @apply btn bg-accent text-inverse hover:brightness-110 active:brightness-95;
+  }
+  .btn-accent {
+    @apply btn-primary font-semibold;
   }
   .btn-secondary {
-    @apply btn bg-white text-ink-800 border border-ink-200 hover:bg-ink-50;
+    @apply btn bg-card text-ink border border-border hover:bg-sunken;
   }
   .btn-ghost {
-    @apply btn text-ink-600 hover:bg-ink-100;
+    @apply btn text-secondary hover:bg-sunken;
   }
   .chip {
-    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium;
+    @apply inline-flex items-center gap-1.5 rounded-pill px-2.5 py-0.5 text-xs font-medium;
   }
   .label {
-    @apply text-xs font-medium uppercase tracking-wide text-ink-500;
+    @apply text-label;
   }
 }
 
 /* Thin, unobtrusive scrollbars for panels */
-.scroll-thin::-webkit-scrollbar { width: 8px; height: 8px; }
-.scroll-thin::-webkit-scrollbar-thumb { @apply bg-ink-200 rounded-full; }
-.scroll-thin::-webkit-scrollbar-track { background: transparent; }
+.scroll-thin::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.scroll-thin::-webkit-scrollbar-thumb {
+  @apply bg-border rounded-pill;
+}
+.scroll-thin::-webkit-scrollbar-track {
+  background: transparent;
+}

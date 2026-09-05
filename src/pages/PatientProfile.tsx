@@ -1,7 +1,7 @@
 import { useStore } from '@/store/store'
 import { ProvenanceBadge, VerificationPill, Chip } from '@/components/ui/badges'
 import { SectionTitle, DisclaimerBar } from '@/components/ui/misc'
-import { formatDate } from '@/domain/util'
+import { formatDate, NOT_IN_SOURCE } from '@/domain/util'
 import { SAFETY_DISCLAIMER } from '@/domain/safety'
 import type { SourceType } from '@/domain/types'
 import { useStaticPageMeta } from '@/seo/usePageMeta'
@@ -16,9 +16,9 @@ export default function PatientProfile() {
   const fields: { label: string; value: string; source: SourceType }[] = [
     { label: 'Patient ID', value: d.patientId, source: d.provenance.patientId?.sourceType ?? 'USER_PROVIDED' },
     { label: 'Name', value: d.name, source: d.provenance.name?.sourceType ?? 'USER_PROVIDED' },
-    { label: 'Age', value: String(d.age ?? '—'), source: d.provenance.age?.sourceType ?? 'USER_PROVIDED' },
-    { label: 'Sex', value: d.sex ?? '—', source: d.provenance.sex?.sourceType ?? 'USER_PROVIDED' },
-    { label: 'Date of birth', value: d.dateOfBirth ? formatDate(d.dateOfBirth) : '—', source: d.provenance.dateOfBirth?.sourceType ?? 'USER_PROVIDED' },
+    { label: 'Age', value: d.age != null ? String(d.age) : NOT_IN_SOURCE, source: d.provenance.age?.sourceType ?? 'USER_PROVIDED' },
+    { label: 'Sex', value: d.sex ?? NOT_IN_SOURCE, source: d.provenance.sex?.sourceType ?? 'USER_PROVIDED' },
+    { label: 'Date of birth', value: d.dateOfBirth ? formatDate(d.dateOfBirth) : NOT_IN_SOURCE, source: d.provenance.dateOfBirth?.sourceType ?? 'USER_PROVIDED' },
   ]
 
   return (
@@ -89,7 +89,7 @@ export default function PatientProfile() {
                   <ProvenanceBadge type={m.provenance.sourceType} className="ml-auto scale-90" />
                 </div>
                 <div className="text-xs text-ink-500 mt-0.5">
-                  {[m.dose, m.frequency].filter(Boolean).join(' · ') || 'Details not specified'}
+                  {[m.dose, m.frequency].filter(Boolean).join(' · ') || NOT_IN_SOURCE}
                 </div>
               </div>
             ))}

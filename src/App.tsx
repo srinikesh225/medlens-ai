@@ -9,7 +9,6 @@ import {
   FileCheck2,
   Upload,
   RotateCcw,
-  Search,
   Bell,
   LogOut,
 } from 'lucide-react'
@@ -47,7 +46,7 @@ const NAV = [
   { to: '/reports', label: 'Reports', icon: FileText },
   { to: '/review', label: 'Review', icon: ClipboardCheck, badge: 'review' },
   { to: '/timeline', label: 'Timeline & Trends', icon: GitCommitVertical },
-  { to: '/summary', label: 'AI Summary', icon: FileCheck2 },
+  { to: '/summary', label: 'Record Summary', icon: FileCheck2 },
 ]
 
 function Sidebar() {
@@ -141,9 +140,6 @@ function PatientHeader() {
         <span className="chip bg-emerald-50 text-emerald-700 border border-emerald-200">✓ {stats.verified} verified</span>
       </div>
       <div className="ml-auto flex items-center gap-2">
-        <Link to="/review" className="icon-btn hidden sm:grid" title="Search & filter values" aria-label="Search and filter values">
-          <Search size={17} />
-        </Link>
         <Link to="/review" className="icon-btn relative hidden sm:grid" title="Items needing attention" aria-label="Items needing attention">
           <Bell size={17} />
           {reviewCount > 0 && (

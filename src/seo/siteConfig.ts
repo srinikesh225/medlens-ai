@@ -71,10 +71,10 @@ export const PAGE_META: Record<string, PageMeta> = {
   },
   summary: {
     path: '/summary',
-    title: 'AI Summary — MedLens',
+    title: 'Record Summary — MedLens',
     description:
-      'A safety-gated patient information summary composed from the structured record, linted against diagnostic and prescriptive language before it is ever shown.',
-    breadcrumbs: [home, { name: 'AI Summary', path: '/summary' }],
+      'A safety-gated patient information summary composed deterministically from the structured record, linted against diagnostic and prescriptive language before it is ever shown.',
+    breadcrumbs: [home, { name: 'Record Summary', path: '/summary' }],
     pageType: 'MedicalWebPage',
   },
   notFound: {

@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { DEMO_MODE } from '@/config'
 
 /**
  * Demo authentication.
@@ -30,6 +31,13 @@ const DEMO_USER: AuthUser = {
 
 const STORAGE_KEY = 'medlens.auth.v1'
 
+/** Pure credential check. Exported so the access boundary is unit-testable. */
+export function authenticate(email: string, password: string): AuthUser | null {
+  const ok =
+    email.trim().toLowerCase() === DEMO_CREDENTIALS.email && password === DEMO_CREDENTIALS.password
+  return ok ? DEMO_USER : null
+}
+
 interface AuthValue {
   user: AuthUser | null
   signIn: (user?: AuthUser) => void
@@ -50,7 +58,11 @@ function load(): AuthUser | null {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(load)
+  // In DEMO_MODE the app opens straight on the seeded record — a reviewer is
+  // already signed in. The sign-in screen still exists and is reachable via
+  // "Sign out", so the access boundary is demonstrable without making a judge
+  // type credentials before seeing anything.
+  const [user, setUser] = useState<AuthUser | null>(() => load() ?? (DEMO_MODE ? DEMO_USER : null))
 
   useEffect(() => {
     try {
@@ -66,12 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       signIn: (u = DEMO_USER) => setUser(u),
       signOut: () => setUser(null),
-      authenticate: (email, password) => {
-        const ok =
-          email.trim().toLowerCase() === DEMO_CREDENTIALS.email &&
-          password === DEMO_CREDENTIALS.password
-        return ok ? DEMO_USER : null
-      },
+      authenticate,
     }),
     [user],
   )

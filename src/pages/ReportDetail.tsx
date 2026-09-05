@@ -7,7 +7,7 @@ import { LabItem } from '@/components/LabItem'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { ProvenanceBadge, Chip } from '@/components/ui/badges'
 import { SectionTitle } from '@/components/ui/misc'
-import { formatDate } from '@/domain/util'
+import { formatDate, NOT_IN_SOURCE } from '@/domain/util'
 import { usePageMeta } from '@/seo/usePageMeta'
 import { PAGE_META } from '@/seo/siteConfig'
 import type { LabResult, SourceSpan } from '@/domain/types'
@@ -48,7 +48,10 @@ export default function ReportDetail() {
   if (!report) {
     return (
       <div className="card p-8 text-center">
-        <p className="text-ink-600">Report not found.</p>
+        <h1 className="text-h2 text-ink">Report not found</h1>
+        <p className="text-secondary mt-2">
+          No report with that id is on file. It may have been removed by a demo reset.
+        </p>
         <Link to="/reports" className="btn-secondary mt-4 inline-flex">Back to reports</Link>
       </div>
     )
@@ -137,7 +140,7 @@ export default function ReportDetail() {
                 {meds.map((m) => (
                   <div key={m.id} className="flex items-center gap-2 flex-wrap rounded-lg border border-ink-200 px-3 py-2">
                     <span className="text-sm font-medium text-ink-800">{m.name}</span>
-                    <span className="text-xs text-ink-500">{[m.dose, m.frequency].filter(Boolean).join(' · ')}</span>
+                    <span className="text-xs text-ink-500">{[m.dose, m.frequency].filter(Boolean).join(' · ') || NOT_IN_SOURCE}</span>
                     {m.status !== 'ACTIVE' && <Chip tone={m.status === 'UNKNOWN' ? 'warn' : 'neutral'}>{m.status.toLowerCase()}</Chip>}
                     <span className="ml-auto flex items-center gap-2">
                       <ProvenanceBadge type={m.verification === 'VERIFIED' || m.verification === 'EDITED' ? 'HUMAN_VERIFIED' : m.provenance.sourceType} className="scale-90" />
