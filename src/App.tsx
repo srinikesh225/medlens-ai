@@ -140,7 +140,12 @@ function PatientHeader() {
         <span className="chip bg-emerald-50 text-emerald-700 border border-emerald-200">✓ {stats.verified} verified</span>
       </div>
       <div className="ml-auto flex items-center gap-2">
-        <Link to="/review" className="icon-btn relative hidden sm:grid" title="Items needing attention" aria-label="Items needing attention">
+        <Link
+          to="/review"
+          className="icon-btn relative hidden sm:grid"
+          title={reviewCount > 0 ? `${reviewCount} items needing attention` : 'Items needing attention'}
+          aria-label={reviewCount > 0 ? `${reviewCount} items needing attention` : 'Items needing attention'}
+        >
           <Bell size={17} />
           {reviewCount > 0 && (
             <span className="absolute -top-0.5 -right-0.5 grid place-items-center min-w-[17px] h-[17px] px-1 rounded-full bg-vital-500 text-white text-[10px] font-semibold tabular-nums ring-2 ring-canvas">
@@ -158,7 +163,7 @@ function PatientHeader() {
 function UploadButton() {
   const { open } = useUploadModal()
   return (
-    <button className="btn-accent" onClick={() => open()}>
+    <button className="btn-accent" onClick={() => open()} aria-label="Upload report">
       <Upload size={16} /> <span className="hidden sm:inline">Upload report</span>
     </button>
   )
@@ -175,6 +180,7 @@ function ResetButton() {
         }
       }}
       title="Reset the demo to its seeded state"
+      aria-label="Reset demo"
     >
       <RotateCcw size={15} /> <span className="hidden sm:inline">Reset demo</span>
     </button>
