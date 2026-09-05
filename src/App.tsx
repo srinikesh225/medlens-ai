@@ -9,12 +9,14 @@ import {
   FileCheck2,
   Upload,
   RotateCcw,
-  ShieldCheck,
   Search,
   Bell,
+  LogOut,
 } from 'lucide-react'
 import { Logo } from './components/ui/misc'
-import { useStore, REVIEWER } from './store/store'
+import { useStore } from './store/store'
+import { useAuth } from './store/auth'
+import Login from './pages/Login'
 import { recordStats } from './store/selectors'
 import { UploadModal } from './components/UploadModal'
 import type { SampleReport } from './demo/samples'
@@ -50,8 +52,10 @@ const NAV = [
 
 function Sidebar() {
   const { record } = useStore()
+  const { user, signOut } = useAuth()
   const stats = recordStats(record)
   const reviewCount = stats.openConflicts + stats.unreviewed + stats.openClarifications
+  const initials = (user?.name ?? 'MedLens').split(' ').map((s) => s[0]).slice(0, 2).join('')
   return (
     <aside className="hidden md:flex w-60 shrink-0 flex-col border-r border-ink-200 bg-white">
       <div className="flex items-center gap-2.5 px-5 h-16 border-b border-ink-100">
@@ -92,9 +96,17 @@ function Sidebar() {
         })}
       </nav>
       <div className="p-3 border-t border-ink-100">
-        <div className="flex items-center gap-2 rounded-lg bg-ink-50 px-3 py-2 text-xs text-ink-500">
-          <ShieldCheck size={14} className="text-primary-600" />
-          <span>Reviewer: <span className="font-medium text-ink-700">{REVIEWER}</span></span>
+        <div className="flex items-center gap-2.5 rounded-xl bg-ink-50 px-2.5 py-2">
+          <span className="grid place-items-center h-8 w-8 rounded-full bg-primary-100 text-primary-800 text-xs font-semibold shrink-0">
+            {initials}
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="text-xs font-medium text-ink-800 truncate">{user?.name}</div>
+            <div className="text-[11px] text-ink-400 truncate">{user?.role}</div>
+          </div>
+          <button onClick={signOut} className="btn-ghost p-1.5 shrink-0" title="Sign out" aria-label="Sign out">
+            <LogOut size={15} />
+          </button>
         </div>
       </div>
     </aside>
@@ -191,6 +203,7 @@ function PageLoading() {
 }
 
 export default function App() {
+  const { user } = useAuth()
   const [uploadOpen, setUploadOpen] = useState(false)
   const [prefill, setPrefill] = useState<SampleReport | undefined>()
 
@@ -200,6 +213,9 @@ export default function App() {
       setUploadOpen(true)
     },
   }
+
+  // Auth gate: unauthenticated users see the sign-in screen (no app shell).
+  if (!user) return <Login />
 
   return (
     <UploadCtx.Provider value={ui}>

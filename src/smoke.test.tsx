@@ -1,8 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { render, screen, cleanup } from '@testing-library/react'
+import { render, screen, cleanup, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import App from './App'
 import { StoreProvider } from './store/store'
+import { AuthProvider } from './store/auth'
 
 /**
  * Render-level smoke test: mounts the full app (with lazy-loaded routes) for
@@ -11,17 +12,27 @@ import { StoreProvider } from './store/store'
  */
 function renderAt(path: string) {
   return render(
-    <StoreProvider>
-      <MemoryRouter initialEntries={[path]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <App />
-      </MemoryRouter>
-    </StoreProvider>,
+    <AuthProvider>
+      <StoreProvider>
+        <MemoryRouter initialEntries={[path]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <App />
+        </MemoryRouter>
+      </StoreProvider>
+    </AuthProvider>,
+  )
+}
+
+function signIn() {
+  localStorage.setItem(
+    'medlens.auth.v1',
+    JSON.stringify({ name: 'Dr. A. Rao', email: 'reviewer@medlens.health', role: 'Clinical reviewer' }),
   )
 }
 
 beforeEach(() => {
   try {
     localStorage.clear()
+    signIn() // route tests run as an authenticated reviewer
   } catch {
     /* ignore */
   }
@@ -71,5 +82,24 @@ describe('app renders every route', () => {
   it('shows the honest missing-range message in a report with no source range', async () => {
     renderAt('/reports/rep_cbc_jul')
     expect(await screen.findAllByText('Reference range not provided in source.')).toBeTruthy()
+  })
+})
+
+describe('authentication gate', () => {
+  it('shows the sign-in screen when no session exists', async () => {
+    localStorage.removeItem('medlens.auth.v1')
+    renderAt('/')
+    expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeTruthy()
+    // The gated app content must NOT be present.
+    expect(screen.queryByText('Patient overview')).toBeNull()
+  })
+
+  it('signing in with the prefilled demo account reveals the app', async () => {
+    localStorage.removeItem('medlens.auth.v1')
+    renderAt('/')
+    await screen.findByRole('heading', { name: 'Sign in' })
+    fireEvent.click(screen.getByRole('button', { name: /sign in/i }))
+    // Sign-in simulates a short round-trip, then the app shell appears.
+    expect(await screen.findByRole('heading', { name: 'Patient overview' }, { timeout: 2000 })).toBeTruthy()
   })
 })
