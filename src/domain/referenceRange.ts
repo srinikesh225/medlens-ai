@@ -64,7 +64,9 @@ export function parseReferenceRange(rawInput: string | undefined | null): Refere
   const norm = raw.toLowerCase().trim()
 
   if (EMPTY_RANGE_TOKENS.has(norm)) {
-    return { raw: raw || '', unavailable: true }
+    // The source explicitly gave no range — drop the token text so the UI shows
+    // the literal "Reference range not provided in source." message.
+    return { raw: '', unavailable: true }
   }
 
   // A trailing unit (e.g. "g/dL") is captured per-shape below.
@@ -120,8 +122,8 @@ export function parseReferenceRange(rawInput: string | undefined | null): Refere
  */
 export function classifyValue(valueRaw: string, range: ReferenceRange): RangeStatus {
   const value = parseNumeric(valueRaw)
-  if (value === undefined) return 'UNKNOWN' // qualitative value → can't range-check
-  if (range.unavailable) return 'UNKNOWN' // no source range → never invent one
+  if (value === undefined) return 'UNEVALUABLE' // non-numeric/inequality/malformed value
+  if (range.unavailable) return 'UNKNOWN' // numeric, but no source range → never invent one
 
   const { low, high } = range
   if (low !== undefined && value < low) return 'LOW'
@@ -142,6 +144,8 @@ export function statusLabel(status: RangeStatus): string {
       return 'Within reported range'
     case 'UNKNOWN':
       return 'Range unavailable'
+    case 'UNEVALUABLE':
+      return 'Not evaluable'
   }
 }
 

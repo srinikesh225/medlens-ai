@@ -15,6 +15,7 @@ import {
   ArrowUp,
   Check,
   HelpCircle,
+  MinusCircle,
   type LucideIcon,
 } from 'lucide-react'
 import type { RangeStatus, SourceType, VerificationState } from '@/domain/types'
@@ -53,6 +54,7 @@ const STATUS: Record<RangeStatus, BadgeSpec> = {
   WITHIN_RANGE: { label: 'Within reported range', icon: Check, className: 'bg-emerald-50 text-emerald-800 border-emerald-200', dot: 'bg-emerald-600' },
   HIGH: { label: 'High', icon: ArrowUp, className: 'bg-red-50 text-red-800 border-red-200', dot: 'bg-red-600' },
   UNKNOWN: { label: 'Range unavailable', icon: HelpCircle, className: 'bg-stone-100 text-stone-700 border-stone-300', dot: 'bg-stone-500' },
+  UNEVALUABLE: { label: 'Not evaluable', icon: MinusCircle, className: 'bg-stone-100 text-stone-600 border-stone-300', dot: 'bg-stone-400' },
 }
 
 export function StatusPill({ status, compact = false }: { status: RangeStatus; compact?: boolean }) {

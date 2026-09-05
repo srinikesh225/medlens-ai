@@ -10,13 +10,21 @@ import {
   AlertTriangle,
   ShieldCheck,
   FlaskConical,
+  Plus,
+  Trash2,
+  PencilLine,
 } from 'lucide-react'
 import { Modal } from './ui/misc'
-import { useStore, useUpload, PIPELINE, type UploadInput, type UploadResult } from '@/store/store'
+import { useStore, useUpload, REVIEWER, PIPELINE, type UploadInput, type UploadResult } from '@/store/store'
 import { SAMPLE_REPORTS, type SampleReport } from '@/demo/samples'
+import { structureManualLabs, type ManualLabInput } from '@/domain/structure'
 import type { ProcessingStage } from '@/domain/types'
 
-type Mode = 'select' | 'processing' | 'done' | 'error'
+type Mode = 'select' | 'processing' | 'done' | 'error' | 'manual'
+
+/** Upload constraints — enforced before a file is ever read. */
+export const ACCEPTED_EXTENSIONS = ['.txt', '.text', '.csv', '.md', '.markdown', '.json']
+export const MAX_UPLOAD_BYTES = 2 * 1024 * 1024 // 2 MB
 
 export function UploadModal({
   open,
@@ -28,13 +36,16 @@ export function UploadModal({
   prefill?: SampleReport
 }) {
   const navigate = useNavigate()
-  const { record } = useStore()
+  const { record, dispatch } = useStore()
   const runUpload = useUpload()
 
   const [mode, setMode] = useState<Mode>('select')
   const [activeStage, setActiveStage] = useState<ProcessingStage | null>(null)
+  const [details, setDetails] = useState<Record<string, string>>({})
   const [result, setResult] = useState<UploadResult | null>(null)
   const [error, setError] = useState<string>('')
+  const [failedReportId, setFailedReportId] = useState<string | null>(null)
+  const [fileError, setFileError] = useState<string>('')
   const [custom, setCustom] = useState({ title: '', text: '' })
 
   // Reset the modal each time it opens; honor a prefill sample.
@@ -43,7 +54,10 @@ export function UploadModal({
       setMode('select')
       setResult(null)
       setError('')
+      setFailedReportId(null)
+      setFileError('')
       setActiveStage(null)
+      setDetails({})
       if (prefill) void start(prefill)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -54,14 +68,71 @@ export function UploadModal({
   async function start(input: UploadInput) {
     setMode('processing')
     setError('')
+    setDetails({})
     try {
-      const res = await runUpload(input, (step) => setActiveStage(step.stage))
+      const res = await runUpload(input, (e) => {
+        setActiveStage(e.stage)
+        setDetails((d) => ({ ...d, [e.stage]: e.detail }))
+      })
       setResult(res)
       setMode('done')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Extraction failed.')
+      setFailedReportId((e as { reportId?: string })?.reportId ?? null)
       setMode('error')
     }
+  }
+
+  /** Real file ingestion with type + size validation. */
+  function startFile(file: File) {
+    setFileError('')
+    if (file.size > MAX_UPLOAD_BYTES) {
+      setFileError(
+        `“${file.name}” is ${(file.size / 1024 / 1024).toFixed(1)} MB — the limit is ${MAX_UPLOAD_BYTES / 1024 / 1024} MB.`,
+      )
+      return
+    }
+    const lower = file.name.toLowerCase()
+    if (lower.endsWith('.pdf') || file.type === 'application/pdf') {
+      setFileError(
+        'PDF text extraction isn’t available in the offline demo. Upload a .txt export of the report, or paste its text.',
+      )
+      return
+    }
+    const isText = ACCEPTED_EXTENSIONS.some((e) => lower.endsWith(e)) || file.type.startsWith('text/')
+    if (!isText) {
+      setFileError(`Unsupported file type. Accepted: ${ACCEPTED_EXTENSIONS.join(', ')}.`)
+      return
+    }
+    const reader = new FileReader()
+    reader.onerror = () => setFileError('That file could not be read.')
+    reader.onload = () => {
+      const text = String(reader.result ?? '')
+      if (!text.trim()) {
+        setFileError('That file appears to be empty.')
+        return
+      }
+      void start({
+        title: file.name.replace(/\.[^.]+$/, ''),
+        labName: 'Uploaded file',
+        reportDate: new Date().toISOString().slice(0, 10),
+        kind: 'LAB',
+        text,
+        filename: file.name,
+        mimeType: file.type || 'text/plain',
+      })
+    }
+    reader.readAsText(file)
+  }
+
+  function saveManual(rows: ManualLabInput[]) {
+    const report = record.reports.find((r) => r.id === failedReportId)
+    if (!report) return
+    const labs = structureManualLabs(rows, report)
+    if (labs.length === 0) return
+    dispatch({ type: 'ADD_MANUAL_LABS', reportId: report.id, labs, actor: REVIEWER })
+    onClose()
+    navigate(`/reports/${report.id}`)
   }
 
   function startSample(s: SampleReport) {
@@ -95,11 +166,14 @@ export function UploadModal({
           setCustom={setCustom}
           onSample={startSample}
           onCustom={startCustom}
+          onFile={startFile}
+          fileError={fileError}
         />
       )}
       {(mode === 'processing' || mode === 'done') && (
         <ProcessRevealStep
           activeStage={activeStage}
+          details={details}
           done={mode === 'done'}
           result={result}
           openConflicts={openConflicts}
@@ -117,15 +191,72 @@ export function UploadModal({
           <AlertTriangle className="mx-auto text-amber-500 mb-3" size={32} />
           <p className="font-medium text-ink-800">We couldn’t extract this document</p>
           <p className="text-sm text-ink-500 mt-1 max-w-sm mx-auto">{error}</p>
-          <p className="text-sm text-ink-500 mt-2">
-            The uploaded document is preserved. You can retry, or add values manually in Review.
+          <p className="text-sm text-ink-500 mt-2 max-w-sm mx-auto">
+            The document has been kept. You can enter its values by hand, or try a different report.
           </p>
-          <button className="btn-secondary mt-4" onClick={() => setMode('select')}>
-            Try another report
-          </button>
+          <div className="flex justify-center gap-2 mt-4">
+            {failedReportId && (
+              <button className="btn-primary" onClick={() => setMode('manual')}>
+                <PencilLine size={15} /> Enter values manually
+              </button>
+            )}
+            <button className="btn-secondary" onClick={() => setMode('select')}>
+              Try another report
+            </button>
+          </div>
         </div>
       )}
+      {mode === 'manual' && <ManualEntryStep onSave={saveManual} onCancel={() => setMode('error')} />}
     </Modal>
+  )
+}
+
+function ManualEntryStep({
+  onSave,
+  onCancel,
+}: {
+  onSave: (rows: ManualLabInput[]) => void
+  onCancel: () => void
+}) {
+  const [rows, setRows] = useState<ManualLabInput[]>([
+    { testName: '', valueRaw: '', unit: '', rangeRaw: '' },
+  ])
+  const update = (i: number, patch: Partial<ManualLabInput>) =>
+    setRows((rs) => rs.map((r, j) => (j === i ? { ...r, ...patch } : r)))
+  const valid = rows.some((r) => r.testName.trim() && r.valueRaw.trim())
+
+  return (
+    <div>
+      <p className="text-sm text-ink-500 mb-4">
+        Enter values from the document by hand. Reference-range status is computed only from the range
+        you type — never a guessed one. Leave the range blank to keep a value un-range-checked.
+      </p>
+      <div className="space-y-2">
+        <div className="grid grid-cols-[1.4fr_0.8fr_0.7fr_1fr_auto] gap-2 text-[11px] font-medium uppercase tracking-wide text-ink-400 px-1">
+          <span>Test</span><span>Value</span><span>Unit</span><span>Reference range</span><span />
+        </div>
+        {rows.map((r, i) => (
+          <div key={i} className="grid grid-cols-[1.4fr_0.8fr_0.7fr_1fr_auto] gap-2">
+            <input className="rounded-lg border border-ink-200 px-2.5 py-1.5 text-sm" placeholder="Hemoglobin" value={r.testName} onChange={(e) => update(i, { testName: e.target.value })} />
+            <input className="rounded-lg border border-ink-200 px-2.5 py-1.5 text-sm" placeholder="13.2" value={r.valueRaw} onChange={(e) => update(i, { valueRaw: e.target.value })} />
+            <input className="rounded-lg border border-ink-200 px-2.5 py-1.5 text-sm" placeholder="g/dL" value={r.unit} onChange={(e) => update(i, { unit: e.target.value })} />
+            <input className="rounded-lg border border-ink-200 px-2.5 py-1.5 text-sm" placeholder="12.0 - 16.0" value={r.rangeRaw} onChange={(e) => update(i, { rangeRaw: e.target.value })} />
+            <button className="btn-ghost px-2 text-ink-400 hover:text-rose-600 disabled:opacity-40" onClick={() => setRows((rs) => rs.filter((_, j) => j !== i))} disabled={rows.length === 1} aria-label="Remove row">
+              <Trash2 size={15} />
+            </button>
+          </div>
+        ))}
+      </div>
+      <button className="btn-ghost text-primary-700 mt-2 px-1 text-sm" onClick={() => setRows((rs) => [...rs, { testName: '', valueRaw: '', unit: '', rangeRaw: '' }])}>
+        <Plus size={15} /> Add row
+      </button>
+      <div className="flex gap-2 mt-4 pt-4 border-t border-ink-100">
+        <button className="btn-primary" onClick={() => onSave(rows)} disabled={!valid}>
+          <CheckCircle2 size={15} /> Save values
+        </button>
+        <button className="btn-secondary" onClick={onCancel}>Back</button>
+      </div>
+    </div>
   )
 }
 
@@ -134,13 +265,17 @@ function SelectStep({
   setCustom,
   onSample,
   onCustom,
+  onFile,
+  fileError,
 }: {
   custom: { title: string; text: string }
   setCustom: (c: { title: string; text: string }) => void
   onSample: (s: SampleReport) => void
   onCustom: () => void
+  onFile: (f: File) => void
+  fileError: string
 }) {
-  const [tab, setTab] = useState<'sample' | 'paste'>('sample')
+  const [tab, setTab] = useState<'sample' | 'file' | 'paste'>('sample')
   return (
     <div>
       <p className="text-sm text-ink-500 mb-4">
@@ -152,10 +287,45 @@ function SelectStep({
         <button className={`px-3 py-1.5 rounded-md font-medium ${tab === 'sample' ? 'bg-white shadow-sm text-ink-900' : 'text-ink-500'}`} onClick={() => setTab('sample')}>
           Sample reports
         </button>
+        <button className={`px-3 py-1.5 rounded-md font-medium ${tab === 'file' ? 'bg-white shadow-sm text-ink-900' : 'text-ink-500'}`} onClick={() => setTab('file')}>
+          Upload file
+        </button>
         <button className={`px-3 py-1.5 rounded-md font-medium ${tab === 'paste' ? 'bg-white shadow-sm text-ink-900' : 'text-ink-500'}`} onClick={() => setTab('paste')}>
           Paste text
         </button>
       </div>
+
+      {tab === 'file' && (
+        <div className="space-y-3">
+          <label className="block cursor-pointer rounded-xl border-2 border-dashed border-ink-200 hover:border-primary-300 hover:bg-primary-50/30 transition-colors p-8 text-center">
+            <input
+              type="file"
+              className="sr-only"
+              accept={ACCEPTED_EXTENSIONS.join(',') + ',text/plain'}
+              onChange={(e) => {
+                const f = e.target.files?.[0]
+                if (f) onFile(f)
+                e.target.value = '' // allow re-selecting the same file
+              }}
+            />
+            <FileText className="mx-auto text-ink-300 mb-2" size={26} />
+            <div className="text-sm font-medium text-ink-800">Choose a report file</div>
+            <div className="text-xs text-ink-500 mt-1">
+              {ACCEPTED_EXTENSIONS.join(', ')} · up to {MAX_UPLOAD_BYTES / 1024 / 1024} MB
+            </div>
+          </label>
+          {fileError && (
+            <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[13px] text-amber-800" role="alert">
+              <AlertTriangle size={15} className="mt-0.5 shrink-0" />
+              <span>{fileError}</span>
+            </div>
+          )}
+          <p className="text-xs text-ink-400">
+            Type and size are validated before the file is read. PDFs aren’t parsed in the offline
+            demo — upload a text export or paste the text instead.
+          </p>
+        </div>
+      )}
 
       {tab === 'sample' && (
         <div className="grid gap-3">
@@ -212,6 +382,7 @@ function SelectStep({
 
 function ProcessRevealStep({
   activeStage,
+  details,
   done,
   result,
   openConflicts,
@@ -219,6 +390,7 @@ function ProcessRevealStep({
   onClose,
 }: {
   activeStage: ProcessingStage | null
+  details: Record<string, string>
   done: boolean
   result: UploadResult | null
   openConflicts: number
@@ -235,16 +407,23 @@ function ProcessRevealStep({
         <ol className="space-y-2.5">
           {PIPELINE.map((step, i) => {
             const state = done || i < activeIndex ? 'done' : i === activeIndex ? 'active' : 'todo'
+            const detail = details[step.stage]
             return (
-              <li key={step.stage} className="flex items-center gap-3 text-sm">
+              <li key={step.stage} className="flex items-start gap-3 text-sm">
                 {state === 'done' ? (
-                  <CheckCircle2 size={18} className="text-emerald-500 shrink-0" />
+                  <CheckCircle2 size={18} className="text-emerald-500 shrink-0 mt-0.5" />
                 ) : state === 'active' ? (
-                  <Loader2 size={18} className="text-primary-600 shrink-0 animate-spin" />
+                  <Loader2 size={18} className="text-primary-600 shrink-0 mt-0.5 animate-spin" />
                 ) : (
-                  <Circle size={18} className="text-ink-200 shrink-0" />
+                  <Circle size={18} className="text-ink-200 shrink-0 mt-0.5" />
                 )}
-                <span className={state === 'todo' ? 'text-ink-400' : 'text-ink-800'}>{step.label}</span>
+                <div className="min-w-0">
+                  <div className={state === 'todo' ? 'text-ink-400' : 'text-ink-800'}>{step.label}</div>
+                  {/* Real per-stage result computed from the document/extraction */}
+                  {detail && (state === 'done' || state === 'active') && (
+                    <div className="text-[11px] text-ink-400 tabular-nums">{detail}</div>
+                  )}
+                </div>
               </li>
             )
           })}

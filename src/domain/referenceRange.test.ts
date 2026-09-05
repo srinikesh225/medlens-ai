@@ -90,13 +90,16 @@ describe('classifyValue — the core safety contract', () => {
     expect(classifyValue('35', parseReferenceRange('> 40'))).toBe('LOW')
     expect(classifyValue('55', parseReferenceRange('> 40'))).toBe('WITHIN_RANGE')
   })
-  it('returns UNKNOWN — never a guess — when the source gives no range', () => {
+  it('returns UNKNOWN (range unavailable) — never a guess — for a numeric value with no source range', () => {
     expect(classifyValue('13.2', parseReferenceRange(''))).toBe('UNKNOWN')
     expect(classifyValue('13.2', parseReferenceRange('N/A'))).toBe('UNKNOWN')
     expect(classifyValue('13.2', parseReferenceRange('140'))).toBe('UNKNOWN')
   })
-  it('returns UNKNOWN for a non-numeric value even with a numeric range', () => {
-    expect(classifyValue('Positive', parseReferenceRange('< 200'))).toBe('UNKNOWN')
+  it('returns UNEVALUABLE for a non-numeric / inequality / malformed value', () => {
+    expect(classifyValue('Positive', parseReferenceRange('< 200'))).toBe('UNEVALUABLE')
+    expect(classifyValue('Negative', parseReferenceRange('Negative'))).toBe('UNEVALUABLE')
+    expect(classifyValue('Trace', parseReferenceRange('4.0 - 11.0'))).toBe('UNEVALUABLE')
+    expect(classifyValue('not a number', parseReferenceRange('1 - 2'))).toBe('UNEVALUABLE')
   })
 })
 

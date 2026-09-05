@@ -56,7 +56,11 @@ export function LabItem({
         <div className="flex justify-between gap-3">
           <span className="text-ink-500">Reference (from source)</span>
           <span className={`font-medium ${lab.referenceRange.unavailable ? 'text-stone-500' : 'text-ink-800'}`}>
-            {lab.referenceRange.unavailable ? NO_RANGE_MESSAGE : lab.referenceRange.raw}
+            {lab.referenceRange.unavailable
+              ? lab.referenceRange.raw
+                ? `${lab.referenceRange.raw} (not numerically comparable)`
+                : NO_RANGE_MESSAGE
+              : lab.referenceRange.raw}
           </span>
         </div>
         {lab.observation && (

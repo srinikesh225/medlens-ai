@@ -1,13 +1,16 @@
 /**
- * Structured extraction schema + validation.
+ * Structured extraction schema + validation — enforced with Zod.
  *
- * Every extraction — whether from the deterministic parser or a real LLM — MUST
- * conform to this schema and pass validation before any of it is allowed to
- * become part of the patient record. Malformed output is rejected, never
- * partially trusted. This is the "schema validation" and "deterministic
- * validation" stage of the pipeline that keeps arbitrary model output from
+ * Every extraction — deterministic parser OR live LLM — MUST pass through
+ * `validateExtraction` before any of it can become part of the patient record.
+ * Malformed output is rejected, never partially trusted. A lab missing its
+ * testName or value is a FATAL rejection; a malformed medication is dropped
+ * (non-fatal). Unknown fields are stripped; confidence is coerced into [0,1].
+ * This is the schema-validation gate that stops arbitrary model output from
  * writing straight into clinical state.
  */
+
+import { z } from 'zod'
 
 export interface ExtractedLab {
   testName: string
@@ -43,17 +46,38 @@ export interface ValidationResult {
   value?: ExtractionOutput
 }
 
-function isNum(x: unknown): x is number {
-  return typeof x === 'number' && Number.isFinite(x)
-}
-function isStr(x: unknown): x is string {
-  return typeof x === 'string'
+/** Coerce anything into a confidence in [0,1], defaulting to 0.8. */
+const confidence = z.preprocess(
+  (v) => (typeof v === 'number' && Number.isFinite(v) ? Math.max(0, Math.min(1, v)) : 0.8),
+  z.number(),
+)
+
+const optionalText = z.string().trim().min(1).optional()
+
+const LabSchema = z.object({
+  testName: z.string().trim().min(1),
+  valueRaw: z.string().trim().min(1),
+  unit: optionalText,
+  rangeRaw: z.string().trim().optional(),
+  specimen: optionalText,
+  observation: optionalText,
+  confidence,
+})
+
+const MedicationSchema = z.object({
+  name: z.string().trim().min(1),
+  dose: optionalText,
+  frequency: optionalText,
+  status: z.enum(['ACTIVE', 'UNKNOWN', 'DISCONTINUED']).catch('UNKNOWN'),
+  confidence,
+})
+
+function issuesToString(err: z.ZodError): string {
+  return err.issues.map((i) => `${i.path.join('.') || 'value'} ${i.message}`).join('; ')
 }
 
 /**
  * Validate raw output (e.g. JSON.parse of an LLM response) against the schema.
- * Coerces confidence into [0,1], strips unknown fields, and rejects anything
- * missing a required field.
  */
 export function validateExtraction(raw: unknown): ValidationResult {
   const errors: string[] = []
@@ -62,60 +86,35 @@ export function validateExtraction(raw: unknown): ValidationResult {
   }
   const obj = raw as Record<string, unknown>
 
+  if (!Array.isArray(obj.labs)) errors.push('`labs` must be an array.')
   const labsIn = Array.isArray(obj.labs) ? obj.labs : []
   const medsIn = Array.isArray(obj.medications) ? obj.medications : []
-  const warningsIn = Array.isArray(obj.warnings) ? obj.warnings : []
-
-  if (!Array.isArray(obj.labs)) errors.push('`labs` must be an array.')
+  const warnings = (Array.isArray(obj.warnings) ? obj.warnings : []).filter(
+    (w): w is string => typeof w === 'string',
+  )
 
   const labs: ExtractedLab[] = []
   labsIn.forEach((l, i) => {
-    if (typeof l !== 'object' || l === null) {
-      errors.push(`labs[${i}] is not an object.`)
+    const parsed = LabSchema.safeParse(l)
+    if (!parsed.success) {
+      errors.push(`labs[${i}]: ${issuesToString(parsed.error)}`)
       return
     }
-    const o = l as Record<string, unknown>
-    if (!isStr(o.testName) || !o.testName.trim()) {
-      errors.push(`labs[${i}].testName is required.`)
-      return
-    }
-    if (!isStr(o.valueRaw) || !o.valueRaw.trim()) {
-      errors.push(`labs[${i}].valueRaw is required.`)
-      return
-    }
-    labs.push({
-      testName: o.testName.trim(),
-      valueRaw: o.valueRaw.trim(),
-      unit: isStr(o.unit) ? o.unit.trim() || undefined : undefined,
-      rangeRaw: isStr(o.rangeRaw) ? o.rangeRaw.trim() : undefined,
-      specimen: isStr(o.specimen) ? o.specimen.trim() || undefined : undefined,
-      observation: isStr(o.observation) ? o.observation.trim() || undefined : undefined,
-      confidence: isNum(o.confidence) ? Math.max(0, Math.min(1, o.confidence)) : 0.8,
-    })
+    labs.push(parsed.data)
   })
 
   const medications: ExtractedMedication[] = []
   medsIn.forEach((m, i) => {
-    if (typeof m !== 'object' || m === null) return
-    const o = m as Record<string, unknown>
-    if (!isStr(o.name) || !o.name.trim()) {
-      errors.push(`medications[${i}].name is required.`)
+    const parsed = MedicationSchema.safeParse(m)
+    if (!parsed.success) {
+      errors.push(`medications[${i}]: ${issuesToString(parsed.error)}`)
       return
     }
-    const status = o.status === 'ACTIVE' || o.status === 'DISCONTINUED' ? o.status : 'UNKNOWN'
-    medications.push({
-      name: o.name.trim(),
-      dose: isStr(o.dose) ? o.dose.trim() || undefined : undefined,
-      frequency: isStr(o.frequency) ? o.frequency.trim() || undefined : undefined,
-      status,
-      confidence: isNum(o.confidence) ? Math.max(0, Math.min(1, o.confidence)) : 0.8,
-    })
+    medications.push(parsed.data)
   })
 
-  const warnings = warningsIn.filter(isStr)
-
-  // Fatal only if labs array itself was malformed or a present lab was invalid.
-  const fatal = errors.filter((e) => !e.includes('medications['))
+  // Only lab / top-level problems are fatal; a bad medication is dropped.
+  const fatal = errors.filter((e) => !e.startsWith('medications['))
   if (fatal.length) return { ok: false, errors }
 
   return { ok: true, errors, value: { labs, medications, warnings } }

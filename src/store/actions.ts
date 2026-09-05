@@ -20,6 +20,7 @@ export type Action =
       medications: Medication[]
       warnings: string[]
     }
+  | { type: 'ADD_MANUAL_LABS'; reportId: string; labs: LabResult[]; actor: string }
   | { type: 'VERIFY_LAB'; labId: string; actor: string }
   | { type: 'REJECT_LAB'; labId: string; actor: string }
   | {

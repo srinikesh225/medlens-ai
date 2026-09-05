@@ -74,6 +74,23 @@ export function reducer(record: PatientRecord, action: Action): PatientRecord {
       return recompute(next)
     }
 
+    case 'ADD_MANUAL_LABS': {
+      let next: PatientRecord = {
+        ...record,
+        reports: record.reports.map((r) =>
+          r.id === action.reportId ? { ...r, stage: 'READY', progress: 100 } : r,
+        ),
+        labs: [...record.labs, ...action.labs],
+      }
+      const report = next.reports.find((r) => r.id === action.reportId)
+      next = audit(next, {
+        actor: action.actor,
+        action: 'MANUAL_ENTRY',
+        detail: `Manually entered ${action.labs.length} value(s) into ${report?.title ?? 'a report'}`,
+      })
+      return recompute(next)
+    }
+
     case 'VERIFY_LAB': {
       const lab = record.labs.find((l) => l.id === action.labId)
       let next = mapLab(record, action.labId, (l) => ({ ...l, verification: 'VERIFIED' }))

@@ -26,7 +26,7 @@ describe('deterministic extractor', () => {
     const out = extractFromText(SAMPLE_REPORTS[1].text)
     const ketones = out.labs.find((l) => l.testName === 'Ketones')!
     expect(ketones.valueRaw.toLowerCase()).toBe('positive')
-    expect(evaluate(ketones.valueRaw, ketones.rangeRaw).status).toBe('UNKNOWN')
+    expect(evaluate(ketones.valueRaw, ketones.rangeRaw).status).toBe('UNEVALUABLE')
   })
 
   it('routes every extraction through schema validation', async () => {

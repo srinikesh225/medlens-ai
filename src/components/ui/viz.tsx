@@ -6,6 +6,7 @@ const STATUS_COLOR: Record<RangeStatus, string> = {
   WITHIN_RANGE: '#047857',
   HIGH: '#b91c1c',
   UNKNOWN: '#78716c',
+  UNEVALUABLE: '#78716c',
 }
 
 /**

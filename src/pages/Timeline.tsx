@@ -2,10 +2,11 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { FileText, Pill, ClipboardCheck, ChevronRight, TrendingUp } from 'lucide-react'
 import { useStore } from '@/store/store'
+import { badgeForLab } from '@/store/selectors'
 import { buildTimeline } from '@/demo/seed'
 import { computeTrends } from '@/domain/trends'
 import { SectionTitle, DisclaimerBar } from '@/components/ui/misc'
-import { StatusPill, Chip } from '@/components/ui/badges'
+import { StatusPill, Chip, VerificationPill, ProvenanceBadge } from '@/components/ui/badges'
 import { TrendChart } from '@/components/ui/viz'
 import { formatDate } from '@/domain/util'
 import type { TimelineEvent } from '@/domain/types'
@@ -56,10 +57,15 @@ export default function Timeline() {
                   {open && labs.length > 0 && (
                     <div className="mt-2 ml-6 rounded-lg border border-ink-100 divide-y divide-ink-50">
                       {labs.map((l) => (
-                        <div key={l.id} className="flex items-center gap-2 px-3 py-1.5 text-sm">
+                        <div key={l.id} className="flex items-center gap-2 flex-wrap px-3 py-2 text-sm">
                           <span className="text-ink-700">{l.testName}</span>
                           <span className="tabular-nums text-ink-500">{l.valueRaw} {l.unit}</span>
-                          <span className="ml-auto"><StatusPill status={l.status} compact /></span>
+                          <span className="ml-auto flex items-center gap-1.5">
+                            {/* source + verification state for every event value */}
+                            <ProvenanceBadge type={badgeForLab(l, record.conflicts)} className="scale-90" />
+                            <VerificationPill state={l.verification} />
+                            <StatusPill status={l.status} compact />
+                          </span>
                         </div>
                       ))}
                       {e.reportId && (

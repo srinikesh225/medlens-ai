@@ -14,6 +14,7 @@ const STATUS_DOT: Record<RangeStatus, { dot: string; text: string; label: string
   HIGH: { dot: 'bg-red-500', text: 'text-red-700', label: 'High' },
   LOW: { dot: 'bg-blue-500', text: 'text-blue-700', label: 'Low' },
   UNKNOWN: { dot: 'bg-stone-400', text: 'text-stone-600', label: 'No range' },
+  UNEVALUABLE: { dot: 'bg-stone-400', text: 'text-stone-600', label: 'Not evaluable' },
 }
 
 const SPARK_COLOR: Record<RangeStatus, string> = {
@@ -21,6 +22,7 @@ const SPARK_COLOR: Record<RangeStatus, string> = {
   HIGH: '#f43f5e',
   LOW: '#2563eb',
   UNKNOWN: '#a8a29e',
+  UNEVALUABLE: '#a8a29e',
 }
 
 export function VitalCard({

@@ -28,7 +28,8 @@ export type RangeStatus =
   | 'LOW'
   | 'WITHIN_RANGE'
   | 'HIGH'
-  | 'UNKNOWN' // range not provided in source, or value non-numeric — never guessed
+  | 'UNKNOWN' // numeric value, but the source provided no usable range — never guessed
+  | 'UNEVALUABLE' // the value itself is non-numeric / inequality / malformed — can't be checked
 
 /**
  * A character span into a report's raw text. This is REAL provenance:
@@ -76,6 +77,7 @@ export interface AuditEntry {
     | 'NOTE_ADDED'
     | 'REPORT_UPLOADED'
     | 'CLARIFICATION_ANSWERED'
+    | 'MANUAL_ENTRY'
   detail: string
   /** For EDITED actions we retain the prior value. */
   from?: string

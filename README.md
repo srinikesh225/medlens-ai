@@ -115,12 +115,23 @@ model-driven — passes through the same gate before touching the record:
 
 ```
 DOCUMENT TEXT
+  → read + segment       (real: character/line/section counts)
   → extract()            (deterministic parser, or live LLM via server proxy)
-  → validateExtraction() (JSON-schema validation — malformed output is REJECTED)
-  → structureLabs()      (range engine + provenance spans attached here)
+  → validateExtraction() (ZOD schema validation — malformed output is REJECTED)
+  → structureLabs()      (range engine + provenance spans + sourced invariant)
   → detectConflicts()    (deterministic)
   → COMMIT to record     (human review still required before "verified")
 ```
+
+**The visible pipeline is real.** Each stage in the upload UI performs its own step and
+reports the metric it actually produced (e.g. *"3/4 value(s) checked against a source
+range"*, *"4/4 value(s) linked to a source span"*) — the next stage is gated on the previous
+one completing. A ~240 ms per-stage delay exists purely so the steps are legible; it is
+presentation pacing, not simulated work.
+
+**Extraction failure is recoverable.** If extraction throws, the document is kept and the UI
+offers **manual entry** — a real form whose values run through the same range engine and
+provenance rules (recorded as `USER_PROVIDED`, audited as `MANUAL_ENTRY`).
 
 **The model never writes to clinical state directly.** Its output is validated, structured,
 range-checked and provenance-tagged by deterministic code first (`src/llm/schema.ts`,
@@ -128,8 +139,9 @@ range-checked and provenance-tagged by deterministic code first (`src/llm/schema
 
 **Extraction JSON schema** (`EXTRACTION_JSON_SCHEMA` in `src/llm/schema.ts`): `labs[]`
 (`testName`, `valueRaw` verbatim, `unit`, `rangeRaw` — *omitted, never invented, if absent*,
-`confidence` 0–1), `medications[]`, `warnings[]`. `validateExtraction()` coerces confidence
-to `[0,1]`, strips unknown fields, and **rejects** any lab missing `testName`/`valueRaw`.
+`confidence` 0–1), `medications[]`, `warnings[]`. `validateExtraction()` is **enforced with
+Zod**: it coerces confidence to `[0,1]`, strips unknown fields, **fatally rejects** any lab
+missing `testName`/`valueRaw`, and drops a malformed medication without failing the batch.
 
 **The exact system contract** sent to a live model (`EXTRACTION_SYSTEM_CONTRACT` in
 `src/domain/safety.ts`) instructs: extract only what the source supports · never invent
@@ -147,9 +159,12 @@ changes** · return only valid JSON.
 - Parses the range **printed in the source**: `12.0 - 16.0`, `12.0–16.0 g/dL`, `< 200`,
   `> 40`, `≤ 5.7`, `0.0 to 5.0`.
 - Returns `LOW` / `WITHIN_RANGE` / `HIGH` **only** when the source gave a usable range.
-- Returns `UNKNOWN` — **never a guess** — when the range is absent (`N/A`, `Not provided`,
-  a bare single number) or the value is non-numeric (`Positive`). The UI then shows the
-  exact sentence: **"Reference range not provided in source."**
+- Returns `UNKNOWN` (**range unavailable**) — never a guess — when the value is numeric but
+  the source gave no usable range (`N/A`, `Not provided`, a bare single number). The UI shows
+  the exact sentence: **"Reference range not provided in source."**
+- Returns `UNEVALUABLE` when the **value itself** can't be range-checked — non-numeric
+  (`Positive`, `Trace`), inequality-form, or malformed. This is deliberately distinct from
+  "range unavailable" so the reason is never ambiguous.
 - **Never substitutes a generic/textbook range.** Ever.
 
 This directly answers the judge's two hardest questions — _"Where did this reference range
@@ -205,8 +220,12 @@ Appropriate to a client-side prototype, honest about the production boundary:
 - **No secrets in the client.** Zero API keys are needed to run. The live-LLM adapter calls
   a **server-side proxy**; a provider key must never live in a `VITE_*` var (those are
   bundled into client code). `.env.example` documents this explicitly.
-- **Validated inputs.** File type/size are constrained in the UI; all extracted data passes
-  `validateExtraction()` before entering state; malformed model output is rejected.
+- **Validated inputs.** Uploaded files are checked for **type and size (2 MB max, text
+  formats only) before they are read**; all extracted data passes the Zod
+  `validateExtraction()` gate before entering state; malformed model output is rejected.
+- **No stack traces, no data in logs.** A global `ErrorBoundary` turns any unexpected render
+  error into a calm fallback (details deliberately not shown), and the app source contains
+  **zero `console.*` calls**, so no patient data reaches client-side logs.
 - **Minimal, safe data handling.** All data is synthetic and clearly fictional. Persistence
   is local (`localStorage`) and wrapped in try/catch. No patient data is sent anywhere in
   the default (offline) mode. No PII is written to logs.
@@ -221,6 +240,7 @@ See `.env.example`. **All are optional** — MedLens is fully functional with no
 
 | Variable | Scope | Purpose |
 |---|---|---|
+| `VITE_DEMO_MODE` | client | **Default `true`.** When true the app makes **zero network/API calls** — all extraction runs in-browser. Set `false` (plus an endpoint below) to enable the live-LLM path. |
 | `VITE_EXTRACTION_ENDPOINT` | client | URL of your server-side extraction proxy. Empty ⇒ deterministic/offline (default). |
 | `VITE_EXTRACTION_MODEL` | client | Model the proxy should use (informational). |
 | `ANTHROPIC_API_KEY` | **server only** | Provider key held by the backend proxy — **never** shipped to the browser. |
@@ -275,7 +295,14 @@ verification state**.
 npm test
 ```
 
-**62 tests** across the credibility core and the whole app:
+**73 tests** across the credibility core and the whole app:
+
+- **Provenance invariant (4)** — `structure.test.ts`: every structured lab carries
+  sourceType + reportId, `assertSourced()` **throws** on a sourceless observation, manual
+  entry stays fully sourced, and a blank manual range stays `UNKNOWN` (never guessed).
+- **Zod validation gate (5)** — `schema.test.ts`: well-formed payload accepted with
+  confidence clamped, a lab missing `testName`/`valueRaw` **fatally rejected**, non-object
+  rejected, malformed medication dropped non-fatally, unknown fields stripped.
 
 - **Reference ranges (19)** — two-sided, inequalities, en/em dashes, units, malformed,
   missing (→ UNKNOWN, never guessed), non-numeric, boundary inclusivity.
@@ -290,9 +317,10 @@ npm test
 - **Seed integrity (8)** — provenance spans point at the real value text, missing ranges
   stay UNKNOWN, seeded conflicts appear, hemoglobin trend is correct, **summary is provably
   safe (0 violations)**.
-- **Whole-app render (12)** — every route (incl. the 404) renders past its lazy Suspense
+- **Whole-app render (14)** — every route (incl. the 404) renders past its lazy Suspense
   boundary; unique document titles, canonical + description meta, the safety disclaimer and
-  the missing-range message are all asserted in the live DOM.
+  the missing-range message are all asserted in the live DOM; the auth gate blocks the app
+  when signed out and reveals it after sign-in.
 
 ---
 
@@ -320,15 +348,24 @@ the judge always sees the full experience.
 
 ## Known limitations
 
-- **OCR of arbitrary scanned images/PDFs** is out of scope for the prototype; the offline
-  extractor parses **text** (columnar "Test / Result / Unit / Reference" reports and the
-  bundled samples). A production build adds a real OCR + layout stage.
-- **Authentication/RBAC** is represented by a single reviewer identity and a documented
-  boundary, not a full auth provider.
+Stated plainly, because a hidden gap is worse than a declared one:
+
+- **No database / no Prisma.** MedLens is a client-side app by design (demo stability). The
+  domain entities in `src/domain/types.ts` are the equivalent of the schema, but there is no
+  persistence layer, no server, and no `Observation` table distinct from `LabResult`.
+  Persistence is `localStorage` only, so records are per-browser and not shared.
+- **No PDF or image OCR.** Uploads accept **text formats only** (`.txt`, `.csv`, `.md`,
+  `.json`; 2 MB max) and are validated before reading. PDFs are explicitly refused with an
+  explanation rather than half-parsed. Production adds a real OCR + layout stage.
+- **Pipeline pacing.** Every stage does real work and reports a real metric, but a ~240 ms
+  per-stage delay is added so the steps are legible. There is no backend emitting progress,
+  because there is no backend.
+- **Authentication is a demo gate.** Credentials are checked in-browser, not on a server.
+  Production replaces it with a real OIDC/SSO provider.
 - **Conflict/allergy checks are intentionally literal** (name-level), never clinical
   inference — by design, to stay non-diagnostic.
-- **Persistence is local** (`localStorage`); there is no shared server database in the
-  prototype.
+- **The live-LLM path is written but not exercised.** `DEMO_MODE=true` (default) guarantees
+  zero API calls; the live adapter requires a backend proxy that is documented, not deployed.
 
 ---
 
