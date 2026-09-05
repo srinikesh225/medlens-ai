@@ -3,4 +3,4 @@ User-agent: *
 Allow: /
 
 # Well-behaved AI crawlers: see llms.txt for a structured overview.
-Sitemap: https://medlens-ai.vercel.app/sitemap.xml
+Sitemap: https://medlensai-azure.vercel.app/sitemap.xml

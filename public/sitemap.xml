@@ -1,32 +1,32 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://medlens-ai.vercel.app/</loc>
+    <loc>https://medlensai-azure.vercel.app/</loc>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://medlens-ai.vercel.app/patient</loc>
+    <loc>https://medlensai-azure.vercel.app/patient</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://medlens-ai.vercel.app/reports</loc>
+    <loc>https://medlensai-azure.vercel.app/reports</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://medlens-ai.vercel.app/review</loc>
+    <loc>https://medlensai-azure.vercel.app/review</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://medlens-ai.vercel.app/timeline</loc>
+    <loc>https://medlensai-azure.vercel.app/timeline</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://medlens-ai.vercel.app/summary</loc>
+    <loc>https://medlensai-azure.vercel.app/summary</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
