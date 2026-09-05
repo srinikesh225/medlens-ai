@@ -107,7 +107,8 @@ export function UploadModal({
     const reader = new FileReader()
     reader.onerror = () => setFileError('That file could not be read.')
     reader.onload = () => {
-      const text = String(reader.result ?? '')
+      const result = reader.result as string | null
+      const text = String(result || '')
       if (!text.trim()) {
         setFileError('That file appears to be empty.')
         return

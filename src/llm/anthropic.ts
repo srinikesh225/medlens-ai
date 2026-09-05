@@ -61,7 +61,7 @@ export function makeLiveExtractor(config: LiveExtractorConfig): Extractor {
         body: JSON.stringify(buildExtractionMessages(text, config.model)),
       })
       if (!res.ok) throw new Error(`Extraction endpoint returned ${res.status}`)
-      const raw = await res.json()
+      const raw = (await res.json()) as unknown
       const validated = validateExtraction(raw)
       if (!validated.ok || !validated.value) {
         throw new Error('LLM output failed schema validation: ' + validated.errors.join('; '))

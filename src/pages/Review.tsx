@@ -209,7 +209,7 @@ function ConflictCard({ conflict, onResolve, onAck, onViewSource }: { conflict: 
         {conflict.evidence.map((e, i) => (
           <button
             key={i}
-            onClick={() => { setFavor(e.label); e.span && onViewSource(e.span) }}
+            onClick={() => { setFavor(e.label); if (e.span) onViewSource(e.span) }}
             className={`text-left rounded-lg border p-2.5 transition-colors ${favor === e.label ? 'border-primary-400 bg-primary-50' : 'border-ink-200 bg-white hover:border-ink-300'}`}
           >
             <div className="text-xs text-ink-400">{e.label}{e.date ? ` · ${e.date}` : ''}</div>

@@ -130,13 +130,13 @@ export function extractFromText(text: string): ExtractionOutput {
 export const deterministicExtractor: Extractor = {
   id: 'medlens-demo-extractor',
   label: 'MedLens deterministic extractor (offline)',
-  async extract(text: string): Promise<ExtractionOutput> {
+  extract(text: string): Promise<ExtractionOutput> {
     const raw = extractFromText(text)
     // Route through the SAME validation gate a real LLM response would face.
     const validated = validateExtraction(raw)
     if (!validated.ok || !validated.value) {
-      throw new Error('Extraction failed schema validation: ' + validated.errors.join('; '))
+      return Promise.reject(new Error('Extraction failed schema validation: ' + validated.errors.join('; ')))
     }
-    return validated.value
+    return Promise.resolve(validated.value)
   },
 }

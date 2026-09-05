@@ -58,8 +58,11 @@ export function recordStats(record: PatientRecord): RecordStats {
 
 export interface LabFilters {
   query: string
+  // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
   status: 'ALL' | 'ABNORMAL' | 'WITHIN' | 'UNKNOWN'
+  // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
   verification: 'ALL' | 'VERIFIED' | 'UNREVIEWED' | 'REJECTED'
+  // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
   reportId: 'ALL' | string
 }
 

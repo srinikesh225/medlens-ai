@@ -50,7 +50,7 @@ export default function Summary() {
           </p>
         </div>
         <div className="flex gap-2 print:hidden">
-          <button className="btn-secondary" onClick={() => { navigator.clipboard?.writeText(asText); setCopied(true); setTimeout(() => setCopied(false), 1500) }}>
+          <button className="btn-secondary" onClick={() => { void navigator.clipboard?.writeText(asText); setCopied(true); setTimeout(() => setCopied(false), 1500) }}>
             {copied ? <Check size={15} /> : <Copy size={15} />} {copied ? 'Copied' : 'Copy'}
           </button>
           <button className="btn-secondary" onClick={() => download(`medlens-record-${record.demographics.patientId}.json`, JSON.stringify(record, null, 2), 'application/json')}>
