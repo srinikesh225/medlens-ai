@@ -1,0 +1,64 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    @apply bg-canvas text-ink-900 font-sans antialiased;
+  }
+  /* Visible, accessible focus ring for keyboard users */
+  :focus-visible {
+    @apply outline-none ring-2 ring-primary-500 ring-offset-1 ring-offset-white rounded;
+  }
+  ::selection {
+    @apply bg-primary-200 text-primary-900;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-white rounded-[20px] border border-ink-200/70 shadow-card;
+  }
+  .card-lg {
+    @apply bg-white rounded-[24px] border border-ink-200/60 shadow-panel;
+  }
+  .icon-chip {
+    @apply grid place-items-center h-9 w-9 rounded-xl shrink-0;
+  }
+  .icon-btn {
+    @apply grid place-items-center h-10 w-10 rounded-full bg-white border border-ink-200/70 text-ink-500 shadow-card hover:text-ink-800 hover:shadow-panel transition-all;
+  }
+  .btn-accent {
+    @apply btn bg-accent-400 text-ink-900 hover:bg-accent-500 active:bg-accent-600 shadow-card font-semibold;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-3.5 py-2 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-primary {
+    @apply btn bg-primary-700 text-white hover:bg-primary-800 active:bg-primary-900;
+  }
+  .btn-secondary {
+    @apply btn bg-white text-ink-800 border border-ink-200 hover:bg-ink-50;
+  }
+  .btn-ghost {
+    @apply btn text-ink-600 hover:bg-ink-100;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+  .label {
+    @apply text-xs font-medium uppercase tracking-wide text-ink-500;
+  }
+}
+
+/* Thin, unobtrusive scrollbars for panels */
+.scroll-thin::-webkit-scrollbar { width: 8px; height: 8px; }
+.scroll-thin::-webkit-scrollbar-thumb { @apply bg-ink-200 rounded-full; }
+.scroll-thin::-webkit-scrollbar-track { background: transparent; }

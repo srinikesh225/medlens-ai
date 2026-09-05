@@ -1,0 +1,6 @@
+# MedLens — robots.txt
+User-agent: *
+Allow: /
+
+# Well-behaved AI crawlers: see llms.txt for a structured overview.
+Sitemap: https://medlens.health/sitemap.xml

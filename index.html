@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Primary meta -->
+    <title>Patient Overview — MedLens Clinical Information Intelligence</title>
+    <meta
+      name="description"
+      content="MedLens turns fragmented medical information into a structured, source-traceable, human-reviewable patient record — with reference-range fidelity, provenance and responsible-AI safeguards."
+    />
+    <link rel="canonical" href="https://medlens.health/" />
+    <meta name="theme-color" content="#1d494f" />
+    <meta name="color-scheme" content="light" />
+    <meta name="author" content="MedLens" />
+
+    <!-- Icons / manifest -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+
+    <!-- Open Graph -->
+    <meta property="og:site_name" content="MedLens" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="MedLens — Clinical Information Intelligence" />
+    <meta
+      property="og:description"
+      content="Fragmented medical information → a structured, traceable, reviewable, understandable patient record. Organized, never diagnosed."
+    />
+    <meta property="og:url" content="https://medlens.health/" />
+    <meta property="og:image" content="https://medlens.health/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="MedLens — Clinical Information Intelligence" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="MedLens — Clinical Information Intelligence" />
+    <meta
+      name="twitter:description"
+      content="A structured, source-traceable, human-reviewable patient record. Reference-range fidelity, provenance and responsible-AI safeguards."
+    />
+    <meta name="twitter:image" content="https://medlens.health/og-image.png" />
+    <meta name="twitter:image:alt" content="MedLens — Clinical Information Intelligence" />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Site-wide structured data -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://medlens.health/#organization",
+            "name": "MedLens",
+            "url": "https://medlens.health",
+            "logo": "https://medlens.health/icon-512.png",
+            "slogan": "Clinical Information Intelligence",
+            "description": "MedLens turns fragmented medical information into a structured, source-traceable, human-reviewable patient record."
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://medlens.health/#website",
+            "url": "https://medlens.health",
+            "name": "MedLens",
+            "publisher": { "@id": "https://medlens.health/#organization" },
+            "inLanguage": "en"
+          },
+          {
+            "@type": "SoftwareApplication",
+            "@id": "https://medlens.health/#software",
+            "name": "MedLens",
+            "applicationCategory": "HealthApplication",
+            "applicationSubCategory": "Clinical Information Intelligence",
+            "operatingSystem": "Web",
+            "url": "https://medlens.health",
+            "publisher": { "@id": "https://medlens.health/#organization" },
+            "description": "Extracts, validates, range-checks, traces and safely summarizes medical report information for human review. Does not provide medical diagnosis or treatment recommendations.",
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+          }
+        ]
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <noscript>
+      MedLens is an interactive clinical-information tool and requires JavaScript. It
+      organizes and summarizes medical information for human review; it does not provide a
+      medical diagnosis or treatment recommendation.
+    </noscript>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

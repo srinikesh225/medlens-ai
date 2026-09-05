@@ -1,0 +1,2 @@
+# Netlify: serve the SPA for any path so client-side routing + the custom 404 work.
+/*    /index.html   200

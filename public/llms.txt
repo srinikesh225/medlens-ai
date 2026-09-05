@@ -1,0 +1,42 @@
+# MedLens
+
+> AI-powered clinical information intelligence. MedLens turns fragmented medical
+> information (history, symptoms, allergies, medications, lab reports, prescriptions,
+> prior records) into a structured, source-traceable, human-reviewable patient record.
+> It organizes and summarizes information — it does NOT diagnose, prescribe, or
+> recommend treatment.
+
+## What MedLens does
+
+- Extracts clinical values from uploaded reports through a validated pipeline
+  (OCR/text → segment → structured extraction → schema validation → range check →
+  provenance → conflict scan → human review).
+- Computes reference-range status (Low / Within range / High / Unknown) using ONLY the
+  range printed in the source report. It never invents a reference range; when a source
+  omits one, it says "Reference range not provided in source."
+- Attaches provenance to every fact (user-provided, document-extracted, AI-generated,
+  human-verified) with a link to the exact span in the original document.
+- Detects conflicts (e.g. two reports disagreeing on the same test) and surfaces them for
+  a human — it never auto-resolves them.
+- Describes trends as data only, never as clinical interpretation.
+- Produces a safety-gated summary that is linted against diagnostic and prescriptive
+  language before display.
+
+## Key pages
+
+- Dashboard (/): patient overview, attention items, recent labs, trends.
+- Patient (/patient): demographics and history with per-field source labels.
+- Reports (/reports): ingested documents and the split-screen document viewer.
+- Review (/review): human-in-the-loop verification, conflict resolution, audit trail.
+- Timeline & Trends (/timeline): chronology and data-only trend analysis.
+- AI Summary (/summary): safety-gated, exportable information summary.
+
+## Safety
+
+MedLens is an information-organization tool, not a medical device or clinician. All
+demo data is synthetic and fictional. Clinical decisions must be made by a qualified
+healthcare professional.
+
+## Contact
+
+Website: https://medlens.health
