@@ -6,7 +6,7 @@
  * (Also update public/sitemap.xml + public/robots.txt, which are static.)
  */
 
-export const SITE_URL = 'https://medlens.health'
+export const SITE_URL = 'https://medlens-ai.vercel.app'
 export const SITE_NAME = 'MedLens'
 export const SITE_TAGLINE = 'Clinical Information Intelligence'
 export const SITE_DESCRIPTION =

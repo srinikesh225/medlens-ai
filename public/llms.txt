@@ -40,4 +40,4 @@ healthcare professional.
 
 ## Contact
 
-Website: https://medlens.health
+Website: https://medlens-ai.vercel.app
